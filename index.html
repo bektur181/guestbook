@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Книга пожеланий — Международный университет имени К. Ш. Токтомаматова</title>
+  <meta name="description" content="Офлайн интерактивная книга пожеланий для тач-экрана с рукописным вводом (стилус/палец)." />
+  <style>
+    :root {
+      --bg:#0b1a2e;
+      --ink:#0f172a;
+      --gold:#c9a227;
+      --gold-2:#f3d37a;
+      --paper:#f7efe0;
+      --paper-2:#efe2c6;
+      --shadow: 0 20px 60px rgba(0,0,0,.35);
+      --radius: 18px;
+      --pad: 24px;
+      --brand: "Georgia", "Times New Roman", serif;
+      --ui: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(1200px 600px at 70% 10%, rgba(255,255,255,.06), transparent 60%),
+        radial-gradient(1200px 600px at 20% 80%, rgba(255,255,255,.05), transparent 60%),
+        var(--bg);
+      color: var(--ink);
+      font-family: var(--ui);
+      overflow: hidden;
+      -webkit-user-select: none; user-select: none;
+    }
+    .frame { position: fixed; inset: 18px; border: 2px solid var(--gold); border-radius: 22px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), 0 10px 50px rgba(0,0,0,.4); pointer-events: none; }
+    .frame::before, .frame::after { content: ""; position: absolute; inset: 10px; border: 1px dashed rgba(201,162,39,.45); border-radius: 18px; }
+
+    .welcome { position: absolute; inset: 0; display: grid; place-items: center; gap: 24px; padding: 48px; text-align: center; color: #dbe7ff; }
+    .welcome-inner { max-width: 1100px; }
+    .crest { width: clamp(120px, 16vw, 200px); height: auto; margin: 0 auto 18px; filter: drop-shadow(0 10px 18px rgba(0,0,0,.35)); }
+    .title { font-family: var(--brand); font-weight: 700; line-height: 1.15; font-size: clamp(26px, 4.5vw, 56px); letter-spacing: .5px; color: #f6f7ff; margin: 8px 0 6px; text-shadow: 0 2px 0 rgba(0,0,0,.2); }
+    .subtitle { font-size: clamp(16px, 2.2vw, 24px); opacity: .95; }
+    .hint { font-size: clamp(16px, 2vw, 22px); margin-top: 20px; color: #ffe6a0; }
+    .cta { display: inline-flex; align-items: center; gap: 10px; background: linear-gradient(180deg, var(--gold-2), var(--gold)); color: #3b2b00; border: 0; border-radius: 999px; padding: 16px 24px; font-size: clamp(18px, 2.2vw, 24px); font-weight: 700; letter-spacing: .3px; box-shadow: 0 10px 30px rgba(201,162,39,.35), inset 0 2px 0 rgba(255,255,255,.6); cursor: pointer; transition: transform .15s ease; }
+    .cta:active { transform: translateY(1px) scale(.98); }
+
+    .stage { position: absolute; inset: 0; display: grid; place-items: center; padding: 40px; opacity: 0; visibility: hidden; transition: opacity .5s ease; }
+    .stage.show { opacity: 1; visibility: visible; }
+
+    .book { width: min(1600px, 90vw); height: min(900px, 78vh); perspective: 2000px; position: relative; filter: drop-shadow(0 40px 80px rgba(0,0,0,.5)); }
+
+    .cover { position: absolute; inset: 0; background: linear-gradient(135deg, #101d33, #0c1524); border-radius: var(--radius); border: 2px solid rgba(255,255,255,.06); box-shadow: inset 0 0 0 2px rgba(201,162,39,.25), inset 0 0 80px rgba(255,255,255,.06); overflow: hidden; z-index: 1; transition: transform 1s ease; transform-origin: left center; }
+    .cover .ornament { position: absolute; inset: 16px; border-radius: 12px; border: 2px solid var(--gold); background: radial-gradient(700px 200px at 80% 10%, rgba(255,255,255,.08), transparent 60%), radial-gradient(700px 200px at 20% 90%, rgba(255,255,255,.06), transparent 60%); }
+    .cover h2 { font-family: var(--brand); color: #ffe6a0; text-align: center; font-size: clamp(22px, 3vw, 36px); letter-spacing: .6px; margin: 40px 20px 0; }
+
+    .leaf { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 0; transform-style: preserve-3d; border-radius: var(--radius); overflow: hidden; z-index: 0; }
+
+    .page { position: relative; padding: var(--pad); background: var(--paper); box-shadow: inset 0 0 120px rgba(0,0,0,.08); background-image: radial-gradient(600px 200px at 30% 0%, rgba(0,0,0,.08), transparent 60%), radial-gradient(600px 200px at 70% 100%, rgba(0,0,0,.05), transparent 60%), linear-gradient(180deg, rgba(255,255,255,.7), rgba(255,255,255,0)); }
+    .page.left { background: linear-gradient(90deg, var(--paper-2), var(--paper)); }
+    .page.right { background: linear-gradient(270deg, var(--paper-2), var(--paper)); }
+    .gild { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, rgba(255,255,255,.35), rgba(255,255,255,0), rgba(255,255,255,.35)); opacity: .25; mix-blend-mode: screen; }
+    .page h3 { font-family: var(--brand); margin: 0 0 10px; color: #402e08; }
+
+    .entries { position: relative; height: 100%; overflow: auto; padding-right: 6px; }
+    .entry { background: rgba(255,255,255,.75); border: 1px solid #e2d4b0; border-radius: 12px; padding: 8px; margin: 10px 0; box-shadow: 0 3px 10px rgba(0,0,0,.06); display: grid; grid-template-columns: 84px 1fr; gap: 10px; align-items: center; }
+    .entry img { width: 84px; height: 84px; object-fit: cover; border-radius: 8px; border: 1px solid #d8c9a4; background: #fffdf7; }
+    .entry .meta { font-size: 14px; color: #6b5320; }
+
+    .pad-wrap { position: relative; height: 100%; border: 1px dashed rgba(0,0,0,.08); border-radius: 14px; overflow: hidden; background: repeating-linear-gradient(180deg, rgba(64,46,8,.06), rgba(64,46,8,.06) 1px, transparent 1px, transparent 36px), linear-gradient(180deg, rgba(255,255,255,.7), rgba(255,255,255,0)); }
+    .pad { position: absolute; inset: 0; touch-action: none; cursor: crosshair; }
+    .tools { position: absolute; right: 12px; top: 12px; display: grid; gap: 8px; z-index: 5; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(180deg, var(--gold-2), var(--gold)); color: #3b2b00; border: 0; border-radius: 12px; padding: 10px 12px; font-weight: 800; font-size: 16px; cursor: pointer; box-shadow: 0 8px 20px rgba(201,162,39,.35); }
+    .btn.ghost { background: #fff5d7; border: 1px solid #d8c189; color: #5b4310; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tools .row { justify-content: flex-end; }
+    .ink-preview { width: 28px; height: 28px; border-radius: 8px; border: 1px solid #d8c189; background: #3c2b06; }
+    .size { background: #fffaf0; border: 1px solid #ccb786; border-radius: 10px; padding: 6px 8px; font-weight: 700; }
+    .actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+
+    .flip { position: absolute; left: 50%; top: 0; width: 50%; height: 100%; transform-origin: left center; background: var(--paper); box-shadow: var(--shadow); border-left: 1px solid rgba(0,0,0,.08); backface-visibility: hidden; transform-style: preserve-3d; display: none; }
+    .flip.show { display: block; }
+    .flip .content { padding: var(--pad); height: 100%; display:flex; align-items:center; justify-content:center; }
+    .flip .content img { max-width: 100%; max-height: 100%; border-radius: 12px; border: 1px solid #e2d4b0; box-shadow: 0 6px 20px rgba(0,0,0,.15); }
+
+    .hidden { display: none !important; }
+    .tap { animation: pulse 1.6s infinite ease-in-out; opacity: .9; }
+    @keyframes pulse { 0%,100%{ transform: scale(1); } 50%{ transform: scale(1.05);} }
+    @media (max-width: 1100px) { .book { width: 94vw; height: 74vh; } }
+  </style>
+</head>
+<body>
+  <div class="frame" aria-hidden="true"></div>
+
+  <section id="welcome" class="welcome" role="region" aria-label="Приветствие">
+    <div class="welcome-inner">
+      <svg class="crest" viewBox="0 0 200 200" aria-hidden="true">
+        <defs>
+          <linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#f8e7b0"/><stop offset="1" stop-color="#c9a227"/></linearGradient>
+        </defs>
+        <circle cx="100" cy="100" r="92" fill="#0c1524" stroke="url(#g)" stroke-width="8"/>
+        <path d="M60 120 L100 60 L140 120 Z" fill="url(#g)"/>
+        <circle cx="100" cy="120" r="10" fill="#f3d37a"/>
+      </svg>
+      <h1 class="title">Книга пожеланий<br/>Международный университет имени К.&nbsp;Ш.&nbsp;Токтомаматова</h1>
+      <p class="subtitle">Оставляйте пожелания прямо пером на пергаменте — пальцем или стилусом.</p>
+      <p class="hint tap">Нажмите <b>Enter</b> или коснитесь экрана</p>
+      <button class="cta" id="startBtn" type="button" aria-label="Начать">Начать</button>
+    </div>
+  </section>
+
+  <section id="stage" class="stage" role="region" aria-label="Интерактивная книга">
+    <div class="book" aria-live="polite">
+      <div id="cover" class="cover">
+        <div class="ornament"></div>
+        <h2>Книга пожеланий</h2>
+      </div>
+
+      <div class="leaf" id="leaf">
+        <div class="page left">
+          <h3>Недавние записи</h3>
+          <div id="entries" class="entries" aria-live="polite"></div>
+          <div class="gild" aria-hidden="true"></div>
+        </div>
+        <div class="page right">
+          <h3>Напишите пожелание от руки</h3>
+          <div class="pad-wrap">
+            <canvas id="pad" class="pad"></canvas>
+            <div class="tools">
+              <div class="row">
+                <button class="btn ghost" id="penBtn" title="Перо">Перо</button>
+                <button class="btn ghost" id="eraserBtn" title="Ластик">Ластик</button>
+                <button class="btn ghost" id="undoBtn" title="Шаг назад">↶</button>
+                <button class="btn ghost" id="clearBtn" title="Очистить всё">Очистить</button>
+              </div>
+              <div class="row">
+                <div class="ink-preview" id="inkPreview" title="Цвет чернил"></div>
+                <label class="size">Толщина <input id="size" type="range" min="2" max="18" step="1" value="5" style="vertical-align:middle"></label>
+              </div>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn" id="saveBtn">Сохранить и перелистнуть</button>
+            <button class="btn ghost" id="resetBtn" title="На экран приветствия">Завершить</button>
+          </div>
+          <div class="gild" aria-hidden="true"></div>
+        </div>
+      </div>
+
+      <div id="flip" class="flip" aria-hidden="true"><div class="content"></div></div>
+    </div>
+  </section>
+
+  <script>
+  ;(()=>{
+    const welcome = document.getElementById('welcome');
+    const stage   = document.getElementById('stage');
+    const startBtn= document.getElementById('startBtn');
+    const cover   = document.getElementById('cover');
+    const entriesEl = document.getElementById('entries');
+    const resetBtn= document.getElementById('resetBtn');
+    const flip    = document.getElementById('flip');
+
+    // Рукописная панель
+    const pad = document.getElementById('pad');
+    const penBtn = document.getElementById('penBtn');
+    const eraserBtn = document.getElementById('eraserBtn');
+    const undoBtn = document.getElementById('undoBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const sizeEl = document.getElementById('size');
+    const inkPreview = document.getElementById('inkPreview');
+
+    const STORAGE_KEY = 'tokto-guestbook-v2-hand';
+    const DPR = Math.max(1, Math.min(3, window.devicePixelRatio||1));
+
+    function getEntries(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]'); } catch{ return []; } }
+    function setEntries(list){ localStorage.setItem(STORAGE_KEY, JSON.stringify(list.slice(-1000))); }
+
+    function renderEntries(){
+      const list = getEntries();
+      entriesEl.innerHTML = '';
+      if(list.length===0){
+        entriesEl.innerHTML = `<div class="entry"><img src="" alt="" style="background:#fffdf7"/><div class="meta">Пока нет записей — напишите первое пожелание справа.</div></div>`;
+        return;
+      }
+      list.slice(-6).reverse().forEach(e=>{
+        const row = document.createElement('div'); row.className='entry';
+        const img = document.createElement('img'); img.src = e.data; img.alt='Пожелание';
+        const meta = document.createElement('div'); meta.className='meta'; meta.textContent = new Date(e.t).toLocaleString();
+        row.appendChild(img); row.appendChild(meta); entriesEl.appendChild(row);
+      });
+    }
+
+    // Переход на книгу
+    function openBook(){
+      welcome.classList.add('hidden'); stage.classList.add('show');
+      cover.style.transform = 'rotateY(-175deg)'; setTimeout(()=>{ cover.style.zIndex = 0; }, 1000);
+      resizePad(); renderEntries(); setIdleTimer();
+    }
+    function goWelcome(){ stage.classList.remove('show'); welcome.classList.remove('hidden'); cover.style.transform = 'rotateY(0)'; cover.style.zIndex = 1; clearIdleTimer(); }
+
+    startBtn.addEventListener('click', openBook);
+    document.addEventListener('keydown', (e)=>{ if(e.key==='Enter' && !stage.classList.contains('show')) openBook(); });
+    welcome.addEventListener('pointerdown', openBook);
+
+    // ======== РИСОВАНИЕ ========
+    const ctx = pad.getContext('2d');
+    let drawing=false, tool='pen', last=null; // last: {x,y,p}
+    let baseWidth = +sizeEl.value; let color = '#3c2b06';
+    inkPreview.style.background = color;
+    let history=[]; // dataURL stack
+
+    function resizePad(){
+      const rect = pad.getBoundingClientRect();
+      const cssW = Math.max(1, Math.floor(rect.width));
+      const cssH = Math.max(1, Math.floor(rect.height));
+      const newW = cssW * DPR, newH = cssH * DPR;
+
+      if(pad.width !== newW || pad.height !== newH){
+        // сохраняем содержимое
+        const snapshot = document.createElement('canvas');
+        snapshot.width = pad.width; snapshot.height = pad.height;
+        snapshot.getContext('2d').drawImage(pad,0,0);
+
+        pad.width = newW; pad.height = newH;
+        // масштабируем контекст в CSS-пикселях
+        ctx.setTransform(1,0,0,1,0,0);
+        ctx.scale(DPR, DPR);
+
+        if(snapshot.width && snapshot.height){
+          // вернуть старый рисунок в новые размеры
+          ctx.drawImage(snapshot, 0, 0, snapshot.width, snapshot.height, 0, 0, cssW, cssH);
+        }
+        drawPaperTexture();
+      }
+    }
+
+    function drawPaperTexture(){
+      // лёгкая виньетка для «бумаги»
+      const cssW = pad.width / DPR;
+      const cssH = pad.height / DPR;
+      const rgrad = ctx.createRadialGradient(cssW/2, cssH/2, 10, cssW/2, cssH/2, Math.max(cssW,cssH)/2);
+      rgrad.addColorStop(0,'rgba(0,0,0,0)'); rgrad.addColorStop(1,'rgba(0,0,0,0.06)');
+      ctx.fillStyle = rgrad; ctx.fillRect(0,0,cssW,cssH);
+    }
+
+    function pointerPos(e){ const r=pad.getBoundingClientRect(); return { x:(e.clientX - r.left), y:(e.clientY - r.top), p: (typeof e.pressure==='number' && e.pressure>0? e.pressure: 0.5) }; }
+    function strokeStyle(){ ctx.lineCap='round'; ctx.lineJoin='round'; }
+    function penWidth(p){ return Math.max(1, baseWidth * (0.5 + p)); }
+
+    function startDraw(e){ e.preventDefault(); pushHistory(); drawing=true; last = pointerPos(e); }
+    function moveDraw(e){ if(!drawing) return; const cur=pointerPos(e);
+      strokeStyle(); if(tool==='pen'){ ctx.strokeStyle=color; ctx.globalCompositeOperation='source-over'; ctx.lineWidth = penWidth(cur.p); }
+      else { ctx.globalCompositeOperation='destination-out'; ctx.lineWidth = Math.max(6, baseWidth*2); }
+      ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(cur.x, cur.y); ctx.stroke(); last=cur;
+    }
+    function endDraw(){ drawing=false; ctx.globalCompositeOperation='source-over'; }
+
+    function pushHistory(){ try{ history.push(pad.toDataURL('image/png')); if(history.length>20) history.shift(); }catch{} }
+    function undo(){ if(!history.length) return; const imgSrc=history.pop(); const img=new Image(); img.onload=()=>{ ctx.clearRect(0,0,pad.width/DPR, pad.height/DPR); ctx.drawImage(img,0,0, img.width, img.height, 0,0, pad.width/DPR, pad.height/DPR); }; img.src=imgSrc; }
+    function clearPad(){ ctx.clearRect(0,0,pad.width/DPR, pad.height/DPR); drawPaperTexture(); }
+
+    pad.addEventListener('pointerdown', startDraw, {passive:false});
+    pad.addEventListener('pointermove', moveDraw, {passive:false});
+    window.addEventListener('pointerup', endDraw, {passive:true});
+    pad.addEventListener('touchstart', e=> e.preventDefault(), {passive:false});
+
+    penBtn.addEventListener('click', ()=>{ tool='pen'; });
+    eraserBtn.addEventListener('click', ()=>{ tool='eraser'; });
+    undoBtn.addEventListener('click', undo);
+    clearBtn.addEventListener('click', clearPad);
+    sizeEl.addEventListener('input', ()=> baseWidth=+sizeEl.value);
+
+    window.addEventListener('resize', resizePad);
+    const onShowObserver = new MutationObserver(()=>{ if(stage.classList.contains('show')){ resizePad(); onShowObserver.disconnect(); }}); onShowObserver.observe(stage,{attributes:true});
+
+    // Сохранить рукописный ввод как страницу и перелистнуть
+    saveBtn.addEventListener('click', ()=>{
+      const out = document.createElement('canvas');
+      out.width = pad.width; out.height = pad.height;
+      const octx = out.getContext('2d');
+
+      // фон бумаги
+      octx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--paper').trim();
+      octx.fillRect(0,0,out.width,out.height);
+      // содержимое (в DPR пикселях)
+      octx.drawImage(pad, 0, 0);
+
+      const data = out.toDataURL('image/png');
+      const list = getEntries(); list.push({ data, t: Date.now() }); setEntries(list);
+
+      flipAnimation(`<img src="${data}" alt="Пожелание">`);
+      clearPad(); idlePing(); renderEntries();
+    });
+
+    // Анимация перелистывания
+    function flipAnimation(html){
+      const content = flip.querySelector('.content');
+      content.innerHTML = html;
+      flip.classList.add('show');
+      flip.style.transform = 'rotateY(0deg)';
+      flip.animate(
+        [{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(-180deg)' }],
+        { duration: 900, easing: 'cubic-bezier(.2,.6,.2,1)' }
+      ).onfinish = ()=>{ flip.classList.remove('show'); };
+    }
+
+    // Авто-сброс киоска
+    let idleTimer = null; let lastTouch = 0;
+    function setIdleTimer(){ clearIdleTimer(); idleTimer = setTimeout(goWelcome, 45_000); }
+    function clearIdleTimer(){ if(idleTimer) clearTimeout(idleTimer), idleTimer=null; }
+    function idlePing(){ if(stage.classList.contains('show')) setIdleTimer(); }
+    ['pointerdown','keydown','touchstart'].forEach(ev=> document.addEventListener(ev, ()=>{ const now=Date.now(); if(now - lastTouch > 400) { idlePing(); lastTouch = now; } }, {passive:true}));
+
+    // Долгое удержание "Завершить" для очистки базы
+    let holdT=null; let holdStart=0;
+    resetBtn.addEventListener('pointerdown', ()=>{
+      holdStart=Date.now();
+      holdT=setInterval(()=>{
+        if(Date.now()-holdStart>4000){
+          clearInterval(holdT); holdT=null;
+          if(confirm('Очистить все записи?')) { localStorage.removeItem(STORAGE_KEY); renderEntries(); alert('Записи очищены.'); }
+        }
+      }, 200);
+    });
+    ['pointerup','pointercancel','pointerleave'].forEach(ev=> resetBtn.addEventListener(ev, ()=>{ if(holdT){ clearInterval(holdT); holdT=null; } }));
+
+    // Первичная отрисовка
+    renderEntries();
+
+    // Блокируем зум дабл-тапом/жестами
+    document.addEventListener('gesturestart', e=> e.preventDefault());
+    document.addEventListener('dblclick', e=> e.preventDefault());
+  })();
+  </script>
+</body>
+</html>
